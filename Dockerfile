@@ -19,6 +19,7 @@ server {
     listen 80;
     root /usr/share/nginx/html;
     index index.html;
+    absolute_redirect off;
     location / {
         try_files $uri $uri/ /index.html;
     }
