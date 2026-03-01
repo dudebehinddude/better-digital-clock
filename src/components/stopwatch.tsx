@@ -80,12 +80,16 @@ export default function Stopwatch() {
           </p>
         ))}
       </div>
-      <div className="mx-auto">
-        <Button onClick={startStop}>
+      <div className="mx-auto w-50 gap-2 flex">
+        <Button className="flex-1" onClick={startStop}>
           {start && !pause ? "Stop" : "Start"}
         </Button>
-        {pause && <Button onClick={reset}>Reset</Button>}
-        {start && !pause && <Button onClick={lap}>Lap</Button>}
+        <Button className="flex-1" onClick={lap} disabled={!start}>
+          Lap
+        </Button>
+        <Button className="flex-1" onClick={reset} disabled={!pause}>
+          Reset
+        </Button>
       </div>
     </Card>
   );

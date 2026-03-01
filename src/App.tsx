@@ -28,7 +28,7 @@ export function App() {
   }
 
   return (
-    <div className="relative flex w-full min-h-screen items-center justify-center overflow-hidden">
+    <div className="relative flex w-full h-dvh items-center justify-center overflow-hidden">
       {/* Wallpaper */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat"

@@ -149,41 +149,46 @@ export default function Clock() {
   }
 
   return (
-    <Card className="w-full max-w-[60vw] h-full max-h-[80vh] gap-4">
+    <Card className="w-full max-w-[60vw] max-h-[80vh] gap-4">
       <div className="mx-auto">
         <p>{format(now, "EEEE, MMMM d, yyyy")}</p>
         <p className="text-4xl font-bold font-mono tabular-nums text-white">
           {now.toLocaleTimeString()}
         </p>
       </div>
-      <p className="text-lg font-bold">Alarms</p>
-      <div className="flex flex-col gap-2 overflow-y-scroll flex-0">
-        {[...alarms]
-          .sort((a, b) => {
-            const [aHour, aMin] = a.time.split(":").map(Number);
-            const [bHour, bMin] = b.time.split(":").map(Number);
-            if (aHour !== bHour) {
-              return aHour - bHour;
-            }
-            if (aMin !== bMin) {
-              return aMin - bMin;
-            }
-            return a.name.localeCompare(b.name);
-          })
-          .map((alarm) => {
-            const stateIndex = alarms.findIndex((a) => a === alarm);
-            return (
-              <AlarmItem
-                key={stateIndex}
-                alarm={alarm}
-                index={stateIndex}
-                setAlarms={setAlarms}
-                now={now}
-              />
-            );
-          })}
+      <div className="flex flex-col gap-2">
+        <p className="text-lg font-bold">Alarms</p>
+        {alarms.length === 0 && (
+          <p className="text-muted-foreground font-mono">No alarms yet :(</p>
+        )}
+        <div className="flex flex-col gap-4 overflow-y-scroll flex-0 pb-4">
+          {[...alarms]
+            .sort((a, b) => {
+              const [aHour, aMin] = a.time.split(":").map(Number);
+              const [bHour, bMin] = b.time.split(":").map(Number);
+              if (aHour !== bHour) {
+                return aHour - bHour;
+              }
+              if (aMin !== bMin) {
+                return aMin - bMin;
+              }
+              return a.name.localeCompare(b.name);
+            })
+            .map((alarm) => {
+              const stateIndex = alarms.findIndex((a) => a === alarm);
+              return (
+                <AlarmItem
+                  key={stateIndex}
+                  alarm={alarm}
+                  index={stateIndex}
+                  setAlarms={setAlarms}
+                  now={now}
+                />
+              );
+            })}
+        </div>
       </div>
-      <div className="mx-auto">
+      <div className="ml-auto flex gap-2">
         <SetClockDialog onSave={setClock} onReset={() => setClockOffset(0)}>
           <Button>
             <ClockIcon /> Set Clock
@@ -291,7 +296,7 @@ function AlarmItem({
           </div>
           <div>
             <p className="font-bold">{alarm.name}</p>
-            <p>
+            <p className="text-muted-foreground font-mono mr-4">
               {nextLabel} {!alarm.repeat && "· No Repeat"}
             </p>
           </div>

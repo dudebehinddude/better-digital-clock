@@ -78,23 +78,8 @@ export default function Timer() {
     ]);
   }
 
-  if (timers.length === 0) {
-    return (
-      <Card className="w-full max-w-[60%] h-50 p-2 flex items-center justify-center">
-        <TimerDialog onSave={addTimer}>
-          <div className="border-2 border-dashed border-white/20 px-20 py-5 flex flex-col gap-2">
-            <p className="text-lg font-bold">No timers yet</p>
-            <p className="text-muted-foreground flex items-center gap-2">
-              <PlusIcon /> Add a Timer
-            </p>
-          </div>
-        </TimerDialog>
-      </Card>
-    );
-  }
-
   return (
-    <Card className="w-full max-w-[60%] max-h-50 p-2">
+    <Card className="w-full max-w-[60vw] max-h-[50vh] min-h-40 p-2">
       <div className={"h-full flex flex-col overflow-y-scroll gap-8 p-2 pb-8"}>
         {[...timers]
           .sort(
@@ -113,6 +98,9 @@ export default function Timer() {
               />
             );
           })}
+        {timers.length === 0 && (
+          <p className="text-muted-foreground font-mono">No timers yet :(</p>
+        )}
       </div>
       <div className="absolute bottom-4 right-4">
         <TimerDialog onSave={addTimer}>
@@ -251,7 +239,7 @@ function TimerItem({
             <p className="text-lg font-bold">
               <span className={alertAnimation}>{timer.name}</span>
             </p>
-            <p className="text-muted-foreground">
+            <p className="text-muted-foreground font-mono">
               <span className={alertAnimation}>{time}</span>
             </p>
           </div>
