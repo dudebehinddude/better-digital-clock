@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { AlarmClockIcon, TrashIcon } from "lucide-react";
+import { AlarmClockIcon, ClockIcon, TrashIcon } from "lucide-react";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
 import { toast } from "sonner";
 import { AlarmDialog, type AlarmFormValues } from "./alarm-dialog";
+import { SetClockDialog, type SetClockFormValues } from "./set-clock-dialog";
 import { Card } from "./ui/card";
 import {
   ContextMenu,
@@ -25,16 +26,20 @@ interface Alarm {
 
 export default function Clock() {
   const [now, setNow] = useState(() => new Date());
+  const [clockOffset, setClockOffset] = useState(0);
   const [alarms, setAlarms] = useState<Alarm[]>([]);
 
   // Update clock time
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 100);
+    const id = setInterval(
+      () => setNow(new Date(new Date().getTime() + clockOffset)),
+      100,
+    );
     return () => clearInterval(id);
-  }, []);
+  }, [clockOffset]);
 
   function addAlarm(alarm: AlarmFormValues) {
-    const nextNotification = new Date(alarm.date ?? new Date());
+    const nextNotification = new Date(alarm.date);
 
     // Parse time: form uses <input type="time"> which gives 24h "HH:mm"
     const [hoursStr, minutesStr] = alarm.time.split(":");
@@ -61,7 +66,7 @@ export default function Clock() {
   alarms.forEach((alarm, index) => {
     if (
       alarm.nextNotification &&
-      alarm.nextNotification.getTime() < Date.now() &&
+      alarm.nextNotification.getTime() < now.getTime() &&
       !alarm.toastId
     ) {
       const toastId = toast("Alarm", {
@@ -104,6 +109,23 @@ export default function Clock() {
     }
   });
 
+  function setClock(form: SetClockFormValues) {
+    // Calculate difference between now and the set time
+    const now = new Date();
+
+    const [y, m, d] = form.date.split("-").map(Number);
+    const formDate = new Date(y, m - 1, d);
+
+    const [hoursStr, minutesStr, secondsStr] = form.time.split(":");
+    const hours = Number(hoursStr);
+    const minutes = Number(minutesStr);
+    const seconds = Number(secondsStr);
+
+    formDate.setHours(hours, minutes, seconds, 0);
+    const diff = formDate.getTime() - now.getTime();
+    setClockOffset(diff);
+  }
+
   return (
     <Card className="w-full max-w-[60vw] h-full max-h-[80vh] gap-4">
       <div className="mx-auto">
@@ -132,10 +154,16 @@ export default function Clock() {
               alarm={alarm}
               index={index}
               setAlarms={setAlarms}
+              now={now}
             />
           ))}
       </div>
       <div className="mx-auto">
+        <SetClockDialog onSave={setClock} onReset={() => setClockOffset(0)}>
+          <Button>
+            <ClockIcon /> Set Clock
+          </Button>
+        </SetClockDialog>
         <AlarmDialog onSave={addAlarm}>
           <Button>
             <AlarmClockIcon /> Add Alarm
@@ -150,12 +178,14 @@ function AlarmItem({
   alarm,
   index,
   setAlarms,
+  now,
 }: {
   alarm: Alarm;
   index: number;
   setAlarms: Dispatch<SetStateAction<Alarm[]>>;
+  now: Date;
 }) {
-  const now = new Date();
+  const realNow = new Date();
 
   function remove() {
     if (alarm.toastId) {
@@ -182,7 +212,7 @@ function AlarmItem({
       const [hoursStr, minutesStr] = alarm.time.split(":");
       const hours = Number(hoursStr);
       const minutes = Number(minutesStr);
-      const nextNotification = new Date();
+      const nextNotification = realNow;
       nextNotification.setHours(hours, minutes, 0, 0);
       if (nextNotification.getTime() <= Date.now()) {
         nextNotification.setDate(nextNotification.getDate() + 1);
