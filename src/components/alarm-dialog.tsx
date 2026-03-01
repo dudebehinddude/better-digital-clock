@@ -174,7 +174,10 @@ export function AlarmDialog({
                 message: String(e),
               }));
               return (
-                <Field data-invalid={isInvalid}>
+                <Field
+                  data-invalid={isInvalid}
+                  className={form.state.values.repeat ? "hidden" : ""}
+                >
                   <Label htmlFor="alarm-date">Date</Label>
                   <Input
                     id="alarm-date"

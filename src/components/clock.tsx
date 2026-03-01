@@ -31,15 +31,16 @@ export default function Clock() {
 
   // Update clock time
   useEffect(() => {
+    console.log(alarms);
     const id = setInterval(
       () => setNow(new Date(new Date().getTime() + clockOffset)),
       100,
     );
     return () => clearInterval(id);
-  }, [clockOffset]);
+  }, [clockOffset, alarms]);
 
   function addAlarm(alarm: AlarmFormValues) {
-    const nextNotification = new Date(alarm.date);
+    const nextNotification = alarm.repeat ? new Date() : new Date(alarm.date);
 
     // Parse time: form uses <input type="time"> which gives 24h "HH:mm"
     const [hoursStr, minutesStr] = alarm.time.split(":");
@@ -64,11 +65,8 @@ export default function Clock() {
   }
 
   alarms.forEach((alarm, index) => {
-    if (
-      alarm.nextNotification &&
-      alarm.nextNotification.getTime() < now.getTime() &&
-      !alarm.toastId
-    ) {
+    if (!alarm.enabled || !alarm.nextNotification) return;
+    if (alarm.nextNotification.getTime() < now.getTime() && !alarm.toastId) {
       const toastId = toast("Alarm", {
         description: `${alarm.name} · ${format(alarm.nextNotification, "p")}`,
         duration: Infinity,
@@ -88,7 +86,11 @@ export default function Clock() {
               }
 
               const nextNotification = new Date(alarm.nextNotification!);
-              nextNotification.setDate(nextNotification.getDate() + 1);
+              nextNotification.setDate(now.getDate());
+              if (nextNotification.getTime() <= now.getTime()) {
+                nextNotification.setDate(nextNotification.getDate() + 1);
+              }
+
               const next = [...prev];
               next[idx] = {
                 ...alarm,
@@ -110,20 +112,50 @@ export default function Clock() {
   });
 
   function setClock(form: SetClockFormValues) {
-    // Calculate difference between now and the set time
-    const now = new Date();
+    const realNow = new Date();
 
     const [y, m, d] = form.date.split("-").map(Number);
     const formDate = new Date(y, m - 1, d);
 
-    const [hoursStr, minutesStr, secondsStr] = form.time.split(":");
-    const hours = Number(hoursStr);
-    const minutes = Number(minutesStr);
-    const seconds = Number(secondsStr);
+    const [hoursStr, minutesStr, secondsStr] = form.time.split(":").map(Number);
+    formDate.setHours(hoursStr, minutesStr, secondsStr, 0);
 
-    formDate.setHours(hours, minutes, seconds, 0);
-    const diff = formDate.getTime() - now.getTime();
-    setClockOffset(diff);
+    const newOffset = formDate.getTime() - realNow.getTime();
+    setClockOffset((_prev) => newOffset);
+
+    if (newOffset < clockOffset) {
+      // Recompute time immediately to avoid alarm notifications going off before the clock updates
+      setNow((_prev) => new Date(new Date().getTime() + newOffset));
+    }
+
+    // Recompute repeat alarms from the new "current" time
+    updateEnabledRepeatAlarms(formDate);
+  }
+
+  function updateEnabledRepeatAlarms(nextNow?: Date) {
+    const updateTime = nextNow ?? now;
+
+    const newAlarms = [...alarms];
+    alarms.forEach((alarm, index) => {
+      if (!alarm.enabled || !alarm.repeat) return;
+      const nextNotification = new Date(updateTime.getTime());
+
+      const [hoursStr, minutesStr] = alarm.time.split(":");
+      const hours = Number(hoursStr);
+      const minutes = Number(minutesStr);
+
+      nextNotification.setHours(hours, minutes, 0, 0);
+      if (nextNotification.getTime() <= updateTime.getTime()) {
+        nextNotification.setDate(nextNotification.getDate() + 1);
+      }
+
+      newAlarms[index] = {
+        ...alarm,
+        nextNotification,
+      };
+    });
+
+    setAlarms((_prev) => newAlarms);
   }
 
   return (
@@ -136,7 +168,7 @@ export default function Clock() {
       </div>
       <p className="text-lg font-bold">Alarms</p>
       <div className="flex flex-col gap-2 overflow-y-scroll flex-0">
-        {alarms
+        {[...alarms]
           .sort((a, b) => {
             const [aHour, aMin] = a.time.split(":").map(Number);
             const [bHour, bMin] = b.time.split(":").map(Number);
@@ -148,15 +180,18 @@ export default function Clock() {
             }
             return a.name.localeCompare(b.name);
           })
-          .map((alarm, index) => (
-            <AlarmItem
-              key={index}
-              alarm={alarm}
-              index={index}
-              setAlarms={setAlarms}
-              now={now}
-            />
-          ))}
+          .map((alarm) => {
+            const stateIndex = alarms.findIndex((a) => a === alarm);
+            return (
+              <AlarmItem
+                key={stateIndex}
+                alarm={alarm}
+                index={stateIndex}
+                setAlarms={setAlarms}
+                now={now}
+              />
+            );
+          })}
       </div>
       <div className="mx-auto">
         <SetClockDialog onSave={setClock} onReset={() => setClockOffset(0)}>
@@ -205,7 +240,15 @@ function AlarmItem({
     setAlarms((prev) => {
       const newAlarms = [...prev];
       if (alarm.enabled) {
-        newAlarms[index] = { ...alarm, enabled: false };
+        if (alarm.toastId) {
+          toast.dismiss(alarm.toastId);
+        }
+
+        newAlarms[index] = {
+          ...alarm,
+          enabled: false,
+          nextNotification: undefined,
+        };
         return newAlarms;
       }
 
@@ -229,21 +272,32 @@ function AlarmItem({
     });
   }
 
-  const next = alarm.nextNotification;
+  const next =
+    alarm.nextNotification ??
+    new Date(
+      new Date().setHours(
+        Number(alarm.time.split(":")[0]),
+        Number(alarm.time.split(":")[1]),
+        0,
+        0,
+      ),
+    );
   const moreThanOneDay =
     next && next.getTime() - now.getTime() > 24 * 3600 * 1000;
   const nextLabel = next
     ? moreThanOneDay
       ? format(next, "PPpp")
       : format(next, "p")
-    : alarm.time;
+    : format(alarm.time, "p");
 
   return (
     <ContextMenu>
-      <ContextMenuTrigger onClick={toggleEnabled}>
+      <ContextMenuTrigger>
         <div className="flex gap-4 items-center">
-          <div className="w-8">
-            {alarm.repeat && <Switch checked={alarm.enabled} />}
+          <div className="w-8" onClick={(e) => e.stopPropagation()}>
+            {alarm.repeat && (
+              <Switch checked={alarm.enabled} onCheckedChange={toggleEnabled} />
+            )}
           </div>
           <div>
             <p className="font-bold">{alarm.name}</p>
