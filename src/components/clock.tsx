@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { useClockStore, type Alarm } from "@/stores/clock-store";
 import { format } from "date-fns";
 import { AlarmClockIcon, ClockIcon, TrashIcon } from "lucide-react";
 import { useEffect, useState, type Dispatch, type SetStateAction } from "react";
@@ -14,24 +15,13 @@ import {
 } from "./ui/context-menu";
 import { Switch } from "./ui/switch";
 
-interface Alarm {
-  name: string;
-  time: string; // HH:MM (24h)
-  repeat: boolean;
-  enabled: boolean;
-  nextNotification: Date | undefined;
-  toastId?: string | number | undefined;
-  dismissed?: boolean;
-}
-
 export default function Clock() {
   const [now, setNow] = useState(() => new Date());
   const [clockOffset, setClockOffset] = useState(0);
-  const [alarms, setAlarms] = useState<Alarm[]>([]);
+  const alarms = useClockStore((s) => s.alarms);
+  const setAlarms = useClockStore((s) => s.setAlarms);
 
-  // Update clock time
   useEffect(() => {
-    console.log(alarms);
     const id = setInterval(
       () => setNow(new Date(new Date().getTime() + clockOffset)),
       100,
@@ -286,7 +276,7 @@ function AlarmItem({
     next && next.getTime() - now.getTime() > 24 * 3600 * 1000;
   const nextLabel = next
     ? moreThanOneDay
-      ? format(next, "PPpp")
+      ? format(next, "PPp")
       : format(next, "p")
     : format(alarm.time, "p");
 
@@ -301,7 +291,9 @@ function AlarmItem({
           </div>
           <div>
             <p className="font-bold">{alarm.name}</p>
-            <p>{nextLabel}</p>
+            <p>
+              {nextLabel} {!alarm.repeat && "· No Repeat"}
+            </p>
           </div>
         </div>
       </ContextMenuTrigger>

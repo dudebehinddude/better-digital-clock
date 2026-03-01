@@ -1,5 +1,5 @@
-import { useSettings } from "@/contexts/SettingsContext";
 import { cn } from "@/lib/utils";
+import { useSettings } from "@/stores/settings-store";
 import { SettingsIcon } from "lucide-react";
 import { useState } from "react";
 import { Card } from "./ui/card";
@@ -33,12 +33,13 @@ export default function Settings() {
           >
             <p>Background Tint</p>
             <Slider
-              defaultValue={[80]}
-              onValueChange={(value) =>
-                setTint(Array.isArray(value) ? (value[0] ?? tint) : value)
-              }
+              value={[tint]}
               max={100}
               step={1}
+              onValueChange={(value) => {
+                const n = Array.isArray(value) ? value[0] : value;
+                setTint(typeof n === "number" ? n : 0);
+              }}
               className="w-24"
             />
           </div>

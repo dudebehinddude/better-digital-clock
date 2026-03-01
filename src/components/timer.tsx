@@ -1,3 +1,4 @@
+import { useTimerStore, type Timer } from "@/stores/timer-store";
 import { formatElapsed, formatUntil } from "@/lib/time";
 import {
   CheckIcon,
@@ -19,17 +20,9 @@ import {
   ContextMenuTrigger,
 } from "./ui/context-menu";
 
-interface Timer {
-  name: string;
-  duration: number;
-  completionTime: Date | undefined;
-  pausedAt: Date | undefined;
-  toastSent: boolean;
-  toastId: string | number | undefined;
-}
-
 export default function Timer() {
-  const [timers, setTimers] = useState<Timer[]>([]);
+  const timers = useTimerStore((s) => s.timers);
+  const setTimers = useTimerStore((s) => s.setTimers);
   const [_, setRerender] = useState(0);
 
   // Check for completed timers and show toast (runs every re-render)

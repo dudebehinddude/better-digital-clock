@@ -1,4 +1,4 @@
-import { useSettings } from "@/contexts/SettingsContext";
+import { useSettings } from "@/stores/settings-store";
 import { AlarmClockIcon, HourglassIcon, TimerIcon } from "lucide-react";
 import { useState } from "react";
 import Clock from "./components/clock";
