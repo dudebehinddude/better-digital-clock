@@ -1,7 +1,6 @@
-import { useTimerStore, type Timer } from "@/stores/timer-store";
 import { formatElapsed, formatUntil } from "@/lib/time";
+import { useTimerStore, type Timer } from "@/stores/timer-store";
 import {
-  CheckIcon,
   PauseIcon,
   PlayIcon,
   PlusIcon,
@@ -145,14 +144,18 @@ function TimerItem({
       showMillis: false,
     });
   } else {
-    time = formatUntil(timer.completionTime ?? new Date());
+    time = timer.completionTime
+      ? formatUntil(timer.completionTime)
+      : formatElapsed(new Date(), new Date(Date.now() + timer.duration), {
+          showMillis: false,
+        });
   }
 
   let actionButton: React.ReactNode;
   if (alert) {
     actionButton = (
-      <Button key="acknowledge" className="rounded-full" onClick={acknowledge}>
-        <CheckIcon />
+      <Button key="reset" className="rounded-full" onClick={reset}>
+        <RotateCcwIcon />
       </Button>
     );
   } else if (timer.pausedAt) {
@@ -169,13 +172,13 @@ function TimerItem({
     );
   } else {
     actionButton = (
-      <Button key="reset" className="rounded-full" onClick={reset}>
-        <RotateCcwIcon />
+      <Button key="start" className="rounded-full" onClick={start}>
+        <PlayIcon />
       </Button>
     );
   }
 
-  function acknowledge() {
+  function reset() {
     if (timer.toastId) {
       toast.dismiss(timer.toastId);
     }
@@ -187,7 +190,7 @@ function TimerItem({
     });
   }
 
-  function reset() {
+  function start() {
     if (timer.toastId) {
       toast.dismiss(timer.toastId);
     }
