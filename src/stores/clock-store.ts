@@ -20,26 +20,33 @@ export const useClockStore = create<{
     (set) => ({
       alarms: [],
       setAlarms: (action) =>
-        set((s) => ({
-          alarms: typeof action === "function" ? action(s.alarms) : action,
+        set((state) => ({
+          alarms: typeof action === "function" ? action(state.alarms) : action,
         })),
     }),
     {
       name: "better-digital-clock-alarms",
-      partialize: (s) => ({
-        alarms: s.alarms.map(({ toastId, dismissed, ...a }) => ({
-          ...a,
-          nextNotification: a.nextNotification?.toISOString(),
+      partialize: (state) => ({
+        alarms: state.alarms.map(({ toastId: _, ...rest }) => ({
+          ...rest,
+          nextNotification: rest.nextNotification?.toISOString(),
         })),
       }),
       merge: (persisted, current) => {
-        const raw = (persisted as { alarms?: Array<Omit<Alarm, "nextNotification"> & { nextNotification?: string }> })?.alarms ?? [];
+        const raw =
+          (
+            persisted as {
+              alarms?: Array<
+                Omit<Alarm, "nextNotification"> & { nextNotification?: string }
+              >;
+            }
+          )?.alarms ?? [];
         return {
           ...current,
-          alarms: raw.map((a) => ({
-            ...a,
-            nextNotification: a.nextNotification
-              ? new Date(a.nextNotification)
+          alarms: raw.map((persistedAlarm) => ({
+            ...persistedAlarm,
+            nextNotification: persistedAlarm.nextNotification
+              ? new Date(persistedAlarm.nextNotification)
               : undefined,
           })),
         };

@@ -19,33 +19,38 @@ export const useTimerStore = create<{
     (set) => ({
       timers: [],
       setTimers: (action) =>
-        set((s) => ({
-          timers: typeof action === "function" ? action(s.timers) : action,
+        set((state) => ({
+          timers:
+            typeof action === "function" ? action(state.timers) : action,
         })),
     }),
     {
       name: "better-digital-clock-timers",
-      partialize: (s) => ({
-        timers: s.timers.map(({ toastSent, toastId, ...t }) => ({
-          ...t,
-          completionTime: t.completionTime?.toISOString(),
-          pausedAt: t.pausedAt?.toISOString(),
-        })),
+      partialize: (state) => ({
+        timers: state.timers.map(
+          ({ toastSent: _toastSent, toastId: _toastId, ...rest }) => ({
+            ...rest,
+            completionTime: rest.completionTime?.toISOString(),
+            pausedAt: rest.pausedAt?.toISOString(),
+          }),
+        ),
       }),
       merge: (persisted, current) => {
         const raw = (persisted as { timers?: Array<Timer & { completionTime?: string; pausedAt?: string }> })?.timers ?? [];
         const now = Date.now();
         return {
           ...current,
-          timers: raw.map((t) => ({
-            ...t,
-            completionTime: t.completionTime
-              ? new Date(t.completionTime)
+          timers: raw.map((persistedTimer) => ({
+            ...persistedTimer,
+            completionTime: persistedTimer.completionTime
+              ? new Date(persistedTimer.completionTime)
               : undefined,
-            pausedAt: t.pausedAt ? new Date(t.pausedAt) : undefined,
+            pausedAt: persistedTimer.pausedAt
+              ? new Date(persistedTimer.pausedAt)
+              : undefined,
             toastSent:
-              !!t.completionTime &&
-              new Date(t.completionTime).getTime() < now,
+              !!persistedTimer.completionTime &&
+              new Date(persistedTimer.completionTime).getTime() < now,
             toastId: undefined,
           })),
         };
